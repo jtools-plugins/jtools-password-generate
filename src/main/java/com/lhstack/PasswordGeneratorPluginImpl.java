@@ -335,6 +335,6 @@ public class PasswordGeneratorPluginImpl implements IPlugin {
 
     @Override
     public String pluginVersion() {
-        return "0.0.1";
+        return "0.0.2";
     }
 }
