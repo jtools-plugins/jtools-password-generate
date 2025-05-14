@@ -1,23 +1,21 @@
 package com.lhstack;
 
 import com.intellij.icons.AllIcons;
-import com.intellij.ide.plugins.newui.ColorButton;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.JBIntSpinner;
+import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBSlider;
-import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 import com.lhstack.tools.plugins.Helper;
 import com.lhstack.tools.plugins.IPlugin;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.jdesktop.swingx.JXButton;
-import org.jdesktop.swingx.prompt.BuddyButton;
-import org.jetbrains.annotations.NotNull;
+import org.jdesktop.swingx.HorizontalLayout;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -27,6 +25,7 @@ import java.awt.datatransfer.StringSelection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Supplier;
 
 public class PasswordGeneratorPluginImpl implements IPlugin {
 
@@ -74,67 +73,82 @@ public class PasswordGeneratorPluginImpl implements IPlugin {
                 }
             };
 
-            JBTextField customField = new JBTextField("~!@#$%^&*()_+';:><.,/?|\\}{][\"") {
+            JBTextField customField = new JBTextField("~!@#$%^&*()_+';:.,/?|}{][\"") {
                 {
                     this.setMaximumSize(new Dimension(10000, 30));
                 }
             };
 
             JCheckBox excludeRepeat = new JCheckBox("", true);
+            JBIntSpinner passwordNums = new JBIntSpinner(1,0,16){
+                {
+                    this.setPreferredSize(new Dimension(68, 30));
+                }
+            };
+
             //内容
-            JTextArea jbTextArea = getJbTextArea();
-            JComponent copy = Helper.actionButton(AllIcons.Actions.Copy,"复制密码",32,32,projectLocation -> {
-                CopyPasteManager.getInstance().setContents(new StringSelection(jbTextArea.getText()));
-                new Notification("", "复制成功,你的密码: " + jbTextArea.getText(), NotificationType.INFORMATION)
+            JBLabel contentLabel = new JBLabel("", JBLabel.CENTER);
+            contentLabel.setVerticalAlignment(JBLabel.CENTER);
+            contentLabel.setHorizontalAlignment(JBLabel.CENTER);
+//            contentLabel.setBorder(JBUI.Borders.compound(JBUI.Borders.empty(0, 4), JBUI.Borders.customLine(JBColor.GRAY)));
+            contentLabel.setFont(new Font("Monospaced", Font.PLAIN, 24));
+            contentLabel.setCopyable(true);
+            JComponent copy = Helper.actionButton(AllIcons.Actions.Copy, "复制密码", 32, 32, projectLocation -> {
+                CopyPasteManager.getInstance().setContents(new StringSelection(contentLabel.getText()));
+                new Notification("", "复制成功,你的密码: " + contentLabel.getText(), NotificationType.INFORMATION)
                         .setTitle("密码生成")
                         .notify(project);
             });
-            copy.setBorder(JBUI.Borders.compound(JBUI.Borders.empty(0,4)));
-            JComponent refresh = Helper.actionButton(AllIcons.Actions.Refresh,"刷新",32,32,projectLocation -> {
-                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+            copy.setBorder(JBUI.Borders.compound(JBUI.Borders.empty(0, 4)));
+            JComponent refresh = Helper.actionButton(AllIcons.Actions.Refresh, "刷新", 32, 32, projectLocation -> {
+                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
             });
-            refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+            refresh.setBorder(JBUI.Borders.emptyRight(4));
+            refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
 
+            passwordNums.addChangeListener(e -> {
+                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
+            });
             abc.addActionListener(e -> {
-                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
             });
 
             ABC.addActionListener(e -> {
-                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
             });
 
             number.addActionListener(e -> {
-                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
             });
 
             custom.addActionListener(e -> {
-                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
             });
             customField.getDocument().addDocumentListener(new DocumentListener() {
                 @Override
                 public void insertUpdate(DocumentEvent e) {
                     if (custom.isSelected()) {
-                        refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+                        refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
                     }
                 }
 
                 @Override
                 public void removeUpdate(DocumentEvent e) {
                     if (custom.isSelected()) {
-                        refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+                        refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
                     }
                 }
 
                 @Override
                 public void changedUpdate(DocumentEvent e) {
                     if (custom.isSelected()) {
-                        refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+                        refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
                     }
                 }
             });
 
             excludeRepeat.addActionListener(e -> {
-                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+                refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
             });
 
             //密码长度
@@ -159,12 +173,12 @@ public class PasswordGeneratorPluginImpl implements IPlugin {
                         passwordState.setText("很强");
                         jbSlider.setToolTipText("很强");
                     }
-                    refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+                    refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
                 });
                 jbIntSpinner.addChangeListener(e -> {
                     int value = jbIntSpinner.getNumber();
                     jbSlider.setValue(value);
-                    refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, jbTextArea);
+                    refreshPasswd(jbIntSpinner, abc, ABC, number, excludeRepeat, custom, customField, contentLabel,passwordNums);
                 });
                 passwordLengthPanel.setLayout(new BoxLayout(passwordLengthPanel, BoxLayout.X_AXIS));
                 passwordLengthPanel.add(new JLabel(" 密码长度:", JLabel.RIGHT));
@@ -190,11 +204,21 @@ public class PasswordGeneratorPluginImpl implements IPlugin {
 
                 JPanel pane = new JPanel(new BorderLayout());
 
-                JPanel otherPanel = new JPanel(new BorderLayout());
-                otherPanel.add(new JLabel(" 排除相似字符:  "), BorderLayout.WEST);
-                otherPanel.add(excludeRepeat, BorderLayout.CENTER);
+                JPanel otherPanel = new JPanel();
+                {
+                    otherPanel.setLayout(new HorizontalLayout());
+                    JPanel excludePanel = new JPanel(new BorderLayout());
+                    excludePanel.add(new JLabel(" 排除相似字符:  "), BorderLayout.WEST);
+                    excludePanel.add(excludeRepeat, BorderLayout.CENTER);
+
+                    JPanel passwordNumberPanel = new JPanel(new BorderLayout());
+                    passwordNumberPanel.add(new JLabel("  数量:  "), BorderLayout.WEST);
+                    passwordNumberPanel.add(passwordNums, BorderLayout.CENTER);
+                    otherPanel.add(excludePanel);
+                    otherPanel.add(passwordNumberPanel);
+                }
                 pane.add(otherPanel, BorderLayout.NORTH);
-                pane.add(jbTextArea, BorderLayout.CENTER);
+                pane.add(new JBScrollPane(contentLabel), BorderLayout.CENTER);
                 JPanel copayRefreshPane = new JPanel();
                 copayRefreshPane.setLayout(new BorderLayout());
                 copayRefreshPane.add(copy, BorderLayout.CENTER);
@@ -207,9 +231,9 @@ public class PasswordGeneratorPluginImpl implements IPlugin {
         });
     }
 
-    private void refreshPasswd(JBIntSpinner spinner, JCheckBox abc, JCheckBox ABC, JCheckBox number, JCheckBox excludeRepeat, JCheckBox custom, JTextField customField, JTextArea jbTextArea) {
+    private void refreshPasswd(JBIntSpinner spinner, JCheckBox abc, JCheckBox ABC, JCheckBox number, JCheckBox excludeRepeat, JCheckBox custom, JTextField customField, JLabel contentLabel,JBIntSpinner passwordNum) {
         if (spinner.getNumber() == 0) {
-            jbTextArea.setText("");
+            contentLabel.setText("");
             return;
         }
         StringBuilder randomChars = new StringBuilder();
@@ -227,110 +251,71 @@ public class PasswordGeneratorPluginImpl implements IPlugin {
             randomChars.append(customField.getText());
         }
         if (excludeRepeat.isSelected()) {
-            int length = randomChars.length();
-            Random random = new Random();
-            StringBuilder output = new StringBuilder();
-            for (int i = 0; i < spinner.getNumber(); i++) {
-                char nextChar = randomChars.charAt(random.nextInt(length));
-                if (i == 1) {
-                    int count = 0;
-                    while (count <= 50) {
-                        nextChar = randomChars.charAt(random.nextInt(length));
-                        if (nextChar != output.charAt(0)) {
-                            break;
+            Supplier<String> passwordGen = () -> {
+                int length = randomChars.length();
+                Random random = new Random();
+                StringBuilder output = new StringBuilder();
+                for (int i = 0; i < spinner.getNumber(); i++) {
+                    char nextChar = randomChars.charAt(random.nextInt(length));
+                    if (i == 1) {
+                        int count = 0;
+                        while (count <= 50) {
+                            nextChar = randomChars.charAt(random.nextInt(length));
+                            if (nextChar != output.charAt(0)) {
+                                break;
+                            }
+                            count++;
                         }
-                        count++;
                     }
-                }
-                if (i == 2) {
-                    int count = 0;
-                    while (count <= 50) {
-                        nextChar = randomChars.charAt(random.nextInt(length));
-                        if (nextChar != output.charAt(0) && nextChar != output.charAt(1)) {
-                            break;
+                    if (i == 2) {
+                        int count = 0;
+                        while (count <= 50) {
+                            nextChar = randomChars.charAt(random.nextInt(length));
+                            if (nextChar != output.charAt(0) && nextChar != output.charAt(1)) {
+                                break;
+                            }
+                            count++;
                         }
-                        count++;
                     }
-                }
 
-                if (i == 3) {
-                    int count = 0;
-                    while (count <= 50) {
-                        nextChar = randomChars.charAt(random.nextInt(length));
-                        if (nextChar != output.charAt(0) && nextChar != output.charAt(1) && nextChar != output.charAt(2)) {
-                            break;
+                    if (i == 3) {
+                        int count = 0;
+                        while (count <= 50) {
+                            nextChar = randomChars.charAt(random.nextInt(length));
+                            if (nextChar != output.charAt(0) && nextChar != output.charAt(1) && nextChar != output.charAt(2)) {
+                                break;
+                            }
+                            count++;
                         }
-                        count++;
                     }
-                }
 
-                if (i >= 4) {
-                    int count = 0;
-                    while (count <= 50) {
-                        nextChar = randomChars.charAt(random.nextInt(length));
-                        if (nextChar != output.charAt(0) && nextChar != output.charAt(1) && nextChar != output.charAt(2) && nextChar != output.charAt(3)) {
-                            break;
+                    if (i >= 4) {
+                        int count = 0;
+                        while (count <= 50) {
+                            nextChar = randomChars.charAt(random.nextInt(length));
+                            if (nextChar != output.charAt(0) && nextChar != output.charAt(1) && nextChar != output.charAt(2) && nextChar != output.charAt(3)) {
+                                break;
+                            }
+                            count++;
                         }
-                        count++;
                     }
+                    output.append(nextChar);
                 }
-                output.append(nextChar);
+                return output.toString();
+            };
+            StringBuilder numbers = new StringBuilder();
+            for (int i = 0; i < passwordNum.getNumber(); i++) {
+                numbers.append("<div style='text-align: center'>%s</div>".formatted(passwordGen.get()));
             }
-            jbTextArea.setText(output.toString());
+            contentLabel.setText(numbers.toString());
         } else {
-            jbTextArea.setText(RandomStringUtils.random(spinner.getNumber(), randomChars.toString()));
+            StringBuilder numbers = new StringBuilder();
+            for (int i = 0; i < passwordNum.getNumber(); i++) {
+                numbers.append("<div style='text-align: center'>%s</div>".formatted(RandomStringUtils.random(spinner.getNumber(), randomChars.toString())));
+            }
+            contentLabel.setText(numbers.toString());
         }
 
-    }
-
-    private static @NotNull JTextArea getJbTextArea() {
-        JBTextArea jbTextArea = new JBTextArea() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                // 绘制背景
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setColor(getBackground());
-                g2d.fillRect(0, 0, getWidth(), getHeight());
-                g2d.dispose();
-                // 绘制居中文本
-                paintCenteredText((Graphics2D) g.create());
-            }
-
-            private void paintCenteredText(Graphics2D g2d) {
-                g2d.setFont(getFont());
-                FontMetrics fm = g2d.getFontMetrics();
-                String text = getText();
-                if (text.isEmpty()) return;
-
-                // 获取边框的内边距
-                Insets insets = getInsets();
-                int availableWidth = getWidth() - insets.left - insets.right;
-                int availableHeight = getHeight() - insets.top - insets.bottom;
-
-                String[] lines = text.split("\n");
-                int totalHeight = fm.getHeight() * lines.length;
-                // 计算垂直居中位置（考虑内边距）
-                int y = insets.top + (availableHeight - totalHeight) / 2 + fm.getAscent();
-
-                g2d.setColor(getForeground());
-                for (String line : lines) {
-                    int lineWidth = fm.stringWidth(line);
-                    // 计算水平居中位置（考虑内边距）
-                    int x = insets.left + (availableWidth - lineWidth) / 2;
-                    g2d.drawString(line, x, y);
-                    y += fm.getHeight();
-                }
-                g2d.dispose();
-            }
-        };
-        jbTextArea.setFont(new Font("Monospaced", Font.PLAIN, 24));
-        jbTextArea.setWrapStyleWord(true);
-        jbTextArea.setLineWrap(true);
-        jbTextArea.setBorder(JBUI.Borders.compound(JBUI.Borders.empty(0, 4), JBUI.Borders.customLine(JBColor.GRAY)));
-        jbTextArea.setAlignmentX(Component.CENTER_ALIGNMENT);
-        jbTextArea.setAlignmentY(Component.CENTER_ALIGNMENT);
-        jbTextArea.setEditable(false);
-        return jbTextArea;
     }
 
     @Override
